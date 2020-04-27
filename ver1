@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+struct node {
+    int xpos;
+    int ypos;
+    struct node* next;
+}; //A linked list describing the points of the node of the snake
+
 void startscreen(){
     //center of the screen
     int xcen = COLS/2;
@@ -28,7 +34,7 @@ void drawborder(){
     int sborder = LINES - margin;
     int wborder = margin;
     int eborder = COLS - margin;
-    int drawspeed = 3000;  //so we don't have to change ever single draw block speed
+    int drawspeed = 3000;  //so we don't have to change every single draw block speed
     //drawing the top border
     for(int n = 0; n < eborder-wborder; n++){
         move(nborder, wborder+n);
@@ -77,9 +83,23 @@ int main(int ac, char*av[]){
     int sborder = LINES - margin;
     int wborder = margin;
     int eborder = COLS - margin;
+    int gameover = 0;
+    int victory = (COLS - 6) + (LINES -8); //Half the perimeter of the snake pit
+    int count = 0; //current length of the snake (will grow to match the length)
+    int length = 3; 
     //snake position
-    int xpos = xcen;
-    int ypos = ycen;
+    struct node* head;
+    head = (struct node *)malloc(sizeof(struct node));
+    struct node* tail;
+    tail = (struct node *)malloc(sizeof(struct node));
+    struct node* new;
+    new = (struct node *)malloc(sizeof(struct node));
+    head->xpos = xcen;
+    head->ypos = ycen;
+    head->next = NULL;
+    tail->xpos = xcen;
+    tail->ypos = ycen;
+    tail->next = head;
     //switches to tell us which arrow key was pressed last
     int u = 0;
     int d = 0;
@@ -98,7 +118,27 @@ int main(int ac, char*av[]){
     keypad(stdscr, TRUE);       // enables workign with the arrow keys
     move(0,0);         
     addstr("Press any key....");
+
+
     while(1) {
+        move(COLS/2, LINES/2);
+        addstr(">");
+        refresh();
+        new->xpos = head->xpos +1;
+        new->ypos = head->ypos;
+        head->next = new;
+        head = new;
+        if(count < length){
+            count ++;
+        }
+        else{
+            move(tail->xpos, tail->ypos);
+            addstr(" ");
+            tail = tail->next;
+        }
+
+        if(head->xpos >= eborder)
+            gameover = 1;
         int ch = getch();
         switch (ch) {
             case KEY_UP:        // user pressed up arrow key 
@@ -118,7 +158,8 @@ int main(int ac, char*av[]){
                 addstr("You pressed the RIGHT arrow        ");
                 break;
             case 'x':           // pressing x or X will exit the program
-            case 'X': 
+            case 'X':
+                gameover = 1; 
                 endwin();       // close curses
                 return 0;
             default:
@@ -128,7 +169,8 @@ int main(int ac, char*av[]){
                 addstr(buf);
                 break;
             
-        }                
+        } 
+        sleep (1);              
     }
     endwin(); //turn off curses
 }
