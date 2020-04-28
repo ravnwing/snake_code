@@ -175,17 +175,13 @@ int main(int ac, char*av[]){
             tail = tail->next;
             
         }
-            move(0,0);
-                char buf[100];
-                sprintf(buf,"Tail's position is (%d, %d)       ", tail->xpos, tail->ypos);
-                addstr(buf);
 
         if(head->xpos >= 232){
             gameover = 1;
         }
-        /*
+        
         keystroke();
-        */
+        
         usleep (250000);              
     }
     endwin(); //turn off curses
