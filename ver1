@@ -6,7 +6,6 @@
 struct node {
     int xpos;
     int ypos;
-    struct node* next;
 }; //A linked list describing the points of the node of the snake
 
 void startscreen(){
@@ -111,6 +110,7 @@ int keystroke(){
 }
 
 int main(int ac, char*av[]){
+    initscr(); //initialize the curses library
     int speed = 1;
     //im not actually too sure if we need these declared in the main block just quite yet, but i added them just in case
     int xcen = COLS/2;
@@ -122,31 +122,23 @@ int main(int ac, char*av[]){
     int wborder = margin;
     int eborder = COLS - margin;
     int gameover = 0;
-    int victory = (COLS - 6) + (LINES -8); //Half the perimeter of the snake pit
+    int victory = nborder+eborder -1; //Half the perimeter of the snake pit
     int count = 0; //current length of the snake (will grow to match the length)
-    int length = 3; 
+    int length = 5; 
     //snake position
-    struct node *head;  //the moving head of the snake
-    head = (struct node *)malloc(sizeof(struct node));
-    struct node *tail;  //the tail end of the snake
-    tail = (struct node *)malloc(sizeof(struct node));
-    struct node *temp;  
-    temp = (struct node *)malloc(sizeof(struct node));
-    head->xpos = 119;
-    head->ypos = 7;
-    head->next = NULL;
-    tail = head;
-    tail->next = head;
     //switches to tell us which arrow key was pressed last
     int u = 0;
     int d = 0;
     int l = 0;
     int r = 1;
 
+    struct node snake[victory];
+    snake[0].xpos = xcen;
+    snake[0].ypos = ycen;
+
     if(ac == 2){
         speed = atoi(av[1]);
     }
-    initscr(); //initialize the curses library
     startscreen();
     drawborder();
     //below this comment is the code for using the arrow keys and reading the key presses that he gave us
@@ -158,31 +150,32 @@ int main(int ac, char*av[]){
 
 
     while(!gameover) {
-        move(head->ypos, head->xpos);
+        move(snake[count].ypos, snake[count].xpos);
         addstr(">");
         refresh();
-        temp->xpos = head->xpos +1;
-        temp->ypos = head->ypos;
-        head->next = temp;
-        head = head->next;
+         
         if(count < length){
             count ++;
+            snake[count] = snake[count-1];
+            snake[count].xpos++;
         }
         else{
-            move(tail->ypos, tail->xpos);
+            struct node temp = snake[count];
+            move(snake[0].ypos, snake[0].xpos);
             addstr(" ");
             refresh();
-            tail = tail->next;
             
-        }
-
-        if(head->xpos >= 232){
-            gameover = 1;
+            for(int i=0; i< count-1; i++){
+                snake[i] = snake[i+1];
+            }
+            snake[count] = temp;
+            snake[count].xpos++;
         }
         
+        /*
         keystroke();
-        
-        usleep (250000);              
+        */
+        usleep (500000);              
     }
     endwin(); //turn off curses
 }
