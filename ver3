@@ -1,0 +1,345 @@
+#include <curses.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/time.h>
+
+int ssize = 3;
+int count = 0;
+int u = 0;
+int d = 0;
+int l = 0;
+int r = 0;
+char *headchar;
+
+int col;
+int row;
+int oldc[10000];
+int oldr[10000];
+int dir;
+
+int margin = 3; //margin size for the border
+int gameover = 0;
+
+int trophy = 0;
+int trow;
+int tcol;
+int tsize;
+
+void startscreen(){
+    //center of the screen
+    int colcen = COLS/2;
+    int rowcen = LINES/2;
+    clear();
+    refresh();
+    printf("The screen is %d rows, %d columns\n", LINES, COLS);
+    move(rowcen, colcen-12); //move() uses column, row
+    addstr("Press any key to continue\n");
+    refresh();
+    getchar();
+    clear();
+
+}
+
+void drawborder(){
+    //center of the screen
+    int colcen = COLS/2;
+    int rowcen = LINES/2;
+    //next four lines is to keep the borders dynamic
+    int nborder = margin;
+    int sborder = LINES - margin;
+    int wborder = margin;
+    int eborder = COLS - margin;
+    int drawspeed = 3000;  //so we don't have to change ever single draw block speed
+    //drawing the top border
+    for(int n = 0; n < eborder-wborder; n++){
+        move(nborder, wborder+n);
+        addstr("x");
+        refresh();
+        usleep(drawspeed);
+    }
+    //drawing the right border
+    for(int n = 0; n < sborder-nborder; n++){
+        move(nborder+n, eborder);
+        addstr("x");
+        refresh();
+        usleep(drawspeed);
+    }
+    //drawing the bottom border
+    for(int n = 0; n < eborder-wborder; n++){
+        move(sborder, eborder-n);
+        addstr("x");
+        refresh();
+        usleep(drawspeed);
+    }
+    //drawing the left border
+    for(int n = 0; n < sborder-nborder; n++){
+        move(sborder-n, wborder);
+        addstr("x");
+        refresh();
+        usleep(drawspeed);
+    }
+    //just fun text above and below the border
+    move(nborder-2, colcen-11);
+    addstr("Press any key to start!\n");
+    move(sborder+2, colcen-13);
+    addstr("Use the arrow keys to move");
+    refresh();
+    getchar();
+}
+
+//void losescreen(){//we can make these later, or not}
+//void winscreen(){//we can make these later, or not}
+
+int set_ticker(int n_msecs){
+        struct itimerval new_timeset;
+        long    n_sec, n_usecs;
+
+        n_sec = n_msecs / 1000 ;
+        n_usecs = ( n_msecs % 1000 ) * 1000L ;
+
+        new_timeset.it_interval.tv_sec  = n_sec;        /* set reload  */
+        new_timeset.it_interval.tv_usec = n_usecs;      /* new ticker value */
+        new_timeset.it_value.tv_sec     = n_sec  ;      /* store this   */
+        new_timeset.it_value.tv_usec    = n_usecs ;     /* and this     */
+
+	return setitimer(ITIMER_REAL, &new_timeset, NULL);
+}
+
+void starting_direction(){
+    //tried to make the starting direction random with this block, and stuck it in main, but it still goes right all the time, i'm not too sure why
+        int num = (rand() % (4));
+        if(num == 0){
+            u = 1;
+            headchar = "^";
+        }
+        else if(num == 1){
+            d = 1;
+            headchar = "v";
+        }
+        else if(num == 2){
+            l = 1;
+            headchar = "<";
+        }
+        else if(num == 3){
+            r = 1;
+            headchar = ">";
+        }
+}
+
+int main(int ac, char*av[]){
+    initscr(); //initialize the curses library
+    void move_snake(int);
+    int speed = 1;
+    //im not actually too sure if we need these declared in the main block just quite yet, but i added them just in case
+    int colcen = COLS/2;
+    int rowcen = LINES/2;
+    //next four lines is to keep the borders dynamic
+    int nborder = margin;
+    int sborder = LINES - margin;
+    int wborder = margin;
+    int eborder = COLS - margin;
+    int perimeter = (((sborder-nborder)*2) +((eborder-wborder)*2));
+    //snake positions
+    col = colcen; //current x
+    row = rowcen; //current y
+    //switches to tell us which arrow key was pressed last, and how we'll increment/decrement
+    
+    if(ac == 2){
+        speed = atoi(av[1]);
+    }
+    startscreen();
+    drawborder();
+    starting_direction();
+    //below this comment is the code for using the arrow keys and reading the key presses that he gave us
+    curs_set(0);                // hide the cursor
+    noecho();                   // do not echo user input to the screen
+    keypad(stdscr, TRUE);       // enables working with the arrow keys
+    move(0,0);         
+    addstr("Press any key....");
+    signal(SIGALRM, move_snake);
+    set_ticker(speed);
+
+    while(1) {
+        int ch = getch();
+        switch (ch) {
+            case KEY_UP:        // user pressed up arrow key 
+                move(0,0);
+                addstr("You pressed the UP arrow           ");
+                if(d == 1){
+                    gameover = 1;
+                    move((LINES/2), (COLS/2)-4);
+                    addstr("GAMEOVER");
+                    refresh();
+                    int ch = getch();
+                    endwin();
+                    raise(SIGINT);
+                }
+                u = 1;
+                d = 0;
+                l = 0;
+                r = 0;
+                headchar = "^";
+                break;
+            case KEY_DOWN:      // user pressed down arrow key 
+                move(0,0);
+                addstr("You pressed the DOWN arrow         ");
+                if(u == 1){
+                    gameover = 1;
+                    move((LINES/2), (COLS/2)-4);
+                    addstr("GAMEOVER");
+                    refresh();
+                    int ch = getch();
+                    endwin();
+                    raise(SIGINT);
+                }
+                u = 0;
+                d = 1;
+                l = 0;
+                r = 0;
+                headchar = "v";
+                break;
+            case KEY_LEFT:      // user pressed left arrow key 
+                move(0,0);
+                addstr("You pressed the LEFT arrow         ");
+                if(r == 1){
+                    gameover = 1;
+                    move((LINES/2), (COLS/2)-4);
+                    addstr("GAMEOVER");
+                    refresh();
+                    int ch = getch();
+                    endwin();
+                    raise(SIGINT);
+                }
+                u = 0;
+                d = 0;
+                l = 1;
+                r = 0;
+                headchar = "<";
+                break;
+            case KEY_RIGHT:     // user pressed right arrow key 
+                move(0,0);
+                addstr("You pressed the RIGHT arrow        ");
+                if(l == 1){
+                    gameover = 1;
+                    move((LINES/2), (COLS/2)-4);
+                    addstr("GAMEOVER");
+                    refresh();
+                    int ch = getch();
+                    endwin();
+                    raise(SIGINT);
+                }
+                u = 0;
+                d = 0;
+                l = 0;
+                r = 1;
+                headchar = ">";
+                break;
+            case 'x':           // pressing x or X will exit the program
+            case 'X': 
+                endwin();       // close curses
+                return 0;
+            default:
+                move(0,0);
+                char buf[100];
+                sprintf(buf,"You pressed a \"%c\" key, ASCI code %d       ", (char)ch, ch);
+                addstr(buf);
+                break;
+            
+        }           
+    }
+    endwin(); //turn off curses
+}
+void move_snake(int signum){
+    signal(SIGALRM, move_snake);
+    set_ticker(200-(.5 * ssize));
+    oldr[count] = row;
+    oldc[count] = col;
+    move(2, 4);
+    char buf[100];
+    sprintf(buf, "The count is currently %d and ssize is %d", count, ssize);
+    addstr(buf);
+    if(u == 1){
+        row--;
+    }
+    if(d == 1){
+        row++;
+    }
+    if(l == 1){
+        col--;
+    }
+    if(r == 1){
+        col++;
+    }
+    if(trophy == 0){
+        //this if statement checks if there is a trophy currently out, and if not it spawns one
+        trow = (rand() % ((LINES -margin) - (margin))) + margin; 
+        tcol = (rand() % ((COLS- margin) - (margin))) + margin; 
+        tsize = (rand() % (9-1) + 1); 
+        move(trow, tcol);
+        if(tsize == 1){
+            addstr("1");
+        }
+        else if(tsize == 2){
+            addstr("2");
+        }
+        else if(tsize == 3){
+            addstr("3");
+        }
+        else if(tsize == 4){
+            addstr("4");
+        }
+        else if(tsize == 5){
+            addstr("5");
+        }
+        else if(tsize == 6){
+            addstr("6");
+        }
+        else if(tsize == 7){
+            addstr("7");
+        }
+        else if(tsize == 8){
+            addstr("8");
+        }
+        else if(tsize == 9){
+            addstr("9");
+        }
+        trophy = 1;
+    }
+    if(col == tcol && row == trow){
+        //this if statement checks if the snake head is in the same coords as the trophy, then adds the duration to the size of the snake
+        trophy = 0;
+        ssize += tsize; //dynamic snake size isnt implemented yet, it is currently stick at 2
+    }
+    if(col < (margin+1) || col > COLS-(margin+1) || row < (margin+1) || row > LINES-(margin+1) || gameover == 1){
+        //this if statement is to check if the snake collided with the walls
+        move((LINES/2), (COLS/2)-4);
+        addstr("GAMEOVER");
+        refresh();
+        int ch = getch();
+        endwin();
+        raise(SIGINT);
+    }
+    if(ssize > 999){
+        // this if statement is to check if the snake is greater than the condition to win, at the moment it is set very low
+        move((LINES/2), (COLS/2)-4);
+        addstr("YOU WIN");
+        refresh();
+        int ch = getch();
+        endwin();
+        raise(SIGINT);
+    }
+
+    mvaddstr(row, col, headchar);
+    refresh();
+    mvaddstr(oldr[0], oldc[0], " ");
+
+    /*
+    move(row, col);
+    addstr(">");
+    refresh();
+    move(oldr[0], oldc[0]);
+    addstr(" ");*/
+}
