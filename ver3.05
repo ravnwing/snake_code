@@ -255,11 +255,21 @@ int main(int ac, char*av[]){
 void move_snake(int signum){
     signal(SIGALRM, move_snake);
     set_ticker(200-(.5 * ssize));
-    oldr[count] = row;
-    oldc[count] = col;
-    move(2, 4);
-    char buf[100];
+
+    char buf[1000];
+    char coord[20];
     sprintf(buf, "The count is currently %d and ssize is %d", count, ssize);
+    for(int i=0; i < count; i++){
+        oldr[i+1] = oldr[i];
+        oldc[i+1] = oldc[i];
+        sprintf(coord, "  [%d, %d]", oldr[i+1], oldc[i+1]);
+        strcat(buf, coord);
+    }
+    oldr[0] = row;
+    oldc[0] = col;
+    if(count < ssize)
+        count++;
+    move(2, 4);
     addstr(buf);
     if(u == 1){
         row--;
@@ -334,7 +344,7 @@ void move_snake(int signum){
 
     mvaddstr(row, col, headchar);
     refresh();
-    mvaddstr(oldr[0], oldc[0], " ");
+    mvaddstr(oldr[count], oldc[count], " ");
 
     /*
     move(row, col);
